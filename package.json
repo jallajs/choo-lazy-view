@@ -1,0 +1,38 @@
+{
+  "name": "choo-lazy-view",
+  "version": "0.1.0",
+  "description": "Lazily fetch view when needed",
+  "main": "index.js",
+  "scripts": {
+    "test": "standard && dependency-check ./package.json"
+  },
+  "browserify": {
+    "transform": [
+      "unassertify"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jallajs/choo-lazy-view.git"
+  },
+  "keywords": [
+    "choo",
+    "split-require",
+    "bankai",
+    "jalla"
+  ],
+  "author": "Carl Törnqvist <carl@tornqv.ist>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/jallajs/choo-lazy-view/issues"
+  },
+  "homepage": "https://github.com/jallajs/choo-lazy-view#readme",
+  "devDependencies": {
+    "dependency-check": "^3.1.0",
+    "standard": "^11.0.1"
+  },
+  "dependencies": {
+    "nanocomponent": "^6.5.2",
+    "unassertify": "^2.1.1"
+  }
+}
