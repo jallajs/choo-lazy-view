@@ -5,7 +5,7 @@
 [![downloads][downloads-badge]][npm-link]
 [![js-standard-style][standard-badge]][standard-link]
 
-Lazily load view views as they are invoked by the router. Built for [split-require][split-require] but sohuld work with any software with a similar callback signature.
+Lazily load views as the router invokes them. Built for [split-require][split-require] but should work with any software with a similar callback signature.
 
 ## Usage
 ```javascript
@@ -37,7 +37,7 @@ function main () {
 The module exposes a [Nanocomponent][nanocomponent] class with two static methods which are used for wrapping your views and `choo.mount`.
 
 ### `LazyView.create(callback, loader?)`
-Accepts a callback and an optional loader view. The callback will be invoked when the returned function is called upon (called immediately in node). The callback in turn should load the required view and relay it's response (or error) back to the caller.
+Accepts a callback and an optional loader view. The callback will be invoked when the returned function is called upon (called immediately in node). The callback, in turn, should load the required view and relay it's response (or error) back to the caller.
 
 ```javascript
 app.route('/page', LazyView.create(function (callback) {
@@ -45,7 +45,7 @@ app.route('/page', LazyView.create(function (callback) {
 }))
 ```
 
-The second argument is optional and should be a function or a DOM node which will be displayed while loading. By default the node used to mount the application in the DOM is used as loader (meaning the view remians unchanged while loading).
+The second argument is optional and should be a function or a DOM node which will be displayed while loading. By default, the node used to mount the application in the DOM is used as loader (meaning the view remains unchanged while loading).
 
 ```javascript
 app.route('/a', LazyView.create(
@@ -55,7 +55,7 @@ app.route('/a', LazyView.create(
 ```
 
 ### `LazyView.mount(app, selector)`
-Wrapper function for `app.mount`. Returns a promise which resolves once the application is ready. This is needed because split-require resolves modules asyncronously.
+Wrapper function for `app.mount`. Returns a promise which resolves once the application is ready. Needed because split-require resolves modules asynchronously
 
 ```javascript
 // server.js
@@ -65,7 +65,7 @@ Promise.resolve(require('./index')).then(function (app) {
 ```
 
 ### Extending LazyView
-You may extend on LazyView to add a shared framework wrapper, e.g. a header, footer etc.
+You may extend on LazyView to add a shared framework wrapper, e.g. a header, footer, etc.
 
 ```javascript
 // components/view/index.js
@@ -107,7 +107,7 @@ Events are namespaced under `choo-lazy-view` and emitted when loading views.
 When fetching a view.
 
 #### `choo-lazy-view:done`
-When view has been fetched and about to be rendered.
+When the view has been fetched and is about to rerender.
 
 [choo]: https://github.com/choojs/choo
 [nanocomponent]: https://github.com/choojs/nanocomponent
