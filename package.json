@@ -1,6 +1,6 @@
 {
   "name": "choo-lazy-view",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Lazily fetch view when needed",
   "main": "index.js",
   "scripts": {
