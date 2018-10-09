@@ -10,6 +10,7 @@ function LazyView (id, state, emitter, view) {
 
 LazyView.create = function (fn, loader) {
   assert(typeof fn === 'function', 'choo-lazy-view: fn should be a function')
+  fn = promisify(fn)
 
   var Self = this
   var id = 'view-' + Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1)
@@ -62,4 +63,24 @@ LazyView.prototype.update = function () {
 LazyView.prototype.createElement = function (state, emit) {
   assert(this.view, 'choo-lazy-view: cannot render without view')
   return this.view(state, emit)
+}
+
+// wrap callback function with promise
+// fn -> fn
+function promisify (fn) {
+  return function (cb) {
+    return new Promise(function (resolve, reject) {
+      var res = fn(function (err, value) {
+        if (err) reject(err)
+        else resolve(value)
+      })
+      if (res instanceof Promise) return res.then(resolve, reject)
+    }).then(done.bind(null, null), done)
+
+    function done (err, res) {
+      if (typeof cb === 'function') cb(err, res)
+      if (err) throw err
+      else return res
+    }
+  }
 }
