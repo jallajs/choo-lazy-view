@@ -41,7 +41,7 @@ LazyView.create = function (fn, loader) {
     if (typeof loader === 'function') return loader(state, emit)
     if (loader) return loader
     if (typeof Self.selector === 'string') return document.querySelector(Self.selector)
-    if (Self.selector instanceof window.HTMLElement) return Self.selector
+    if (Self.selector instanceof window.Element) return Self.selector
     assert.fail('choo-lazy-view: could not mount loader')
   }
 }
