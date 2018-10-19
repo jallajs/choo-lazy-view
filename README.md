@@ -5,7 +5,9 @@
 [![downloads][downloads-badge]][npm-link]
 [![js-standard-style][standard-badge]][standard-link]
 
-Lazily load views as the router invokes them. Built for [split-require][split-require] but should work with any software with a similar callback signature.
+Lazily load views as the router invokes them. Works great with dynamic import or
+[split-require][split-require] but should work with any software with a promise
+or callback interface.
 
 ## Usage
 ```javascript
@@ -17,8 +19,12 @@ var choo = require('choo')
 var app = choo()
 
 app.route('/', main)
-app.route('/a', LazyView.create((callback) => splitRequire('./a', callback)))
-app.route('/b', LazyView.create((callback) => splitRequire('./b', callback)))
+
+// using dynamic import
+app.route('/some-page', LazyView.create(() => import('./a')))
+
+// or using split-require
+app.route('/another-page', LazyView.create((cb) => splitRequire('./b', cb)))
 
 module.exports = LazyView.mount(app, 'body')
 
@@ -34,38 +40,51 @@ function main () {
 ```
 
 ## API
-The module exposes a [Nanocomponent][nanocomponent] class with two static methods which are used for wrapping your views and `choo.mount`.
+The module exposes a [Nanocomponent][nanocomponent] class with two static
+methods which are used for wrapping your views and `choo.mount`.
 
 ### `LazyView.create(callback, loader?)`
-Accepts a callback and an optional loader view. The callback will be invoked when the returned function is called upon (called immediately in node). The callback, in turn, should load the required view and relay it's response (or error) back to the caller.
+Accepts a callback and an optional loader view. The callback will be invoked
+when the returned function is called upon by the router. The callback, in turn,
+should load the required view and relay it's response (or error) back to the
+caller. This can be done either with a `Promise` or with the supplied callback.
 
 ```javascript
-app.route('/page', LazyView.create(function (callback) {
-  fetchViewSomehow(callback)
+// using promise
+app.route('/my-page', LazyView.create(function () {
+  return fetchViewPromise()
+}))
+
+// using the callback
+app.route('/another-page', LazyView.create(function (callback) {
+  fetchViewCallback(callback)
 }))
 ```
 
-The second argument is optional and should be a function or a DOM node which will be displayed while loading. By default, the node used to mount the application in the DOM is used as loader (meaning the view remains unchanged while loading).
+The second argument is optional and should be a function or a DOM node which
+will be displayed while loading. By default, the node used to mount the
+application in the DOM is used as loader (meaning the view remains unchanged
+while loading).
 
 ```javascript
 app.route('/a', LazyView.create(
-  (callback) => splitRequire('./a', callback),
-  (state, emit) => html`<h1>Loading view…</h1>`
+  () => import('./my-view'),
+  (state, emit) => html`<body>Loading view…</body>`
 ))
 ```
 
 ### `LazyView.mount(app, selector)`
-Wrapper function for `app.mount`. Returns a promise which resolves once the application is ready. Needed because split-require resolves modules asynchronously
+Wrapper function for `app.mount` which stores the selector internally to use as
+fallback loader while fetching views.
 
-```javascript
-// server.js
-Promise.resolve(require('./index')).then(function (app) {
-  var html = app.toString('/a')
-})
+```diff
+- module.exports = app.mount('body')
++ module.exports = LazyView.mount(app, 'body')
 ```
 
 ### Extending LazyView
-You may extend on LazyView to add a shared framework wrapper, e.g. a header, footer, etc.
+You may extend on the LazyView component to add a shared framework wrapper, e.g.
+a header and footer.
 
 ```javascript
 // components/view/index.js
@@ -78,9 +97,9 @@ module.exports = class View extends LazyView {
   createElement (state, emit) {
     return html`
       <body>
-        ${state.cache(Header, 'header')}
+        ${state.cache(Header, 'header').render()}
         ${super.createElement(state, emit)}
-        ${state.cache(Footer, 'footer')}
+        ${state.cache(Footer, 'footer').render()}
       </body>
     `
   }
@@ -90,12 +109,11 @@ module.exports = class View extends LazyView {
 ```javascript
 // index.js
 var choo = require('choo')
-var splitRequire = require('split-require')
 var View = require('./components/view')
 
 var app = choo()
 
-app.route('/', View.create((callback) => splitRequire('./views/home', callback)))
+app.route('/', View.create(() => import('./views/home')))
 
 module.exports = View.mount(app, 'body')
 ```
@@ -108,6 +126,9 @@ When fetching a view.
 
 #### `choo-lazy-view:done`
 When the view has been fetched and is about to rerender.
+
+#### `choo-lazy-view:error`
+When the view fails to load.
 
 [choo]: https://github.com/choojs/choo
 [nanocomponent]: https://github.com/choojs/nanocomponent
