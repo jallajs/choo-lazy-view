@@ -5,7 +5,6 @@ module.exports = LazyView
 
 function LazyView (id, state, emitter, view) {
   Component.call(this, id)
-  this.view = view || null
 }
 
 LazyView.create = function (fn, loader) {
@@ -14,32 +13,35 @@ LazyView.create = function (fn, loader) {
 
   var Self = this
   var id = 'view-' + Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1)
-  var queue = this.queue = this.queue || []
-
-  var view = null
-  if (typeof window === 'undefined') {
-    queue.push(fn(function (err, response) {
-      if (err) assert.fail('choo-lazy-view: ' + err.message)
-      view = response
-    }))
-  }
 
   return function (state, emit) {
-    var cached = state.cache(Self, id, view)
+    var cached = state.cache(Self, id)
 
     if (!cached.view) {
       emit('choo-lazy-view:fetch', id)
-      fn(function (err, view) {
+      var promise = fn(function (err, view) {
         if (err) return emit('choo-lazy-view:error', err)
         emit('choo-lazy-view:done', id, view)
         cached.view = view
         emit('render')
       })
+
+      var prefetch = state.prefetch || state._experimental_prefetch
+      if (prefetch) {
+        promise = promise.then(function (view) {
+          // account for view returning a promise to extend the prefetch queue
+          return cached.render(state, emit)
+        })
+        prefetch.push(promise)
+        return promise
+      }
     }
 
     if (cached.view) return cached.render(state, emit)
     if (typeof loader === 'function') return loader(state, emit)
     if (loader) return loader
+
+    assert(typeof window !== 'undefined', 'choo-lazy-view: loader is required when not using prefetch')
     if (typeof Self.selector === 'string') return document.querySelector(Self.selector)
     if (Self.selector instanceof window.Element) return Self.selector
     assert.fail('choo-lazy-view: could not mount loader')
@@ -48,9 +50,7 @@ LazyView.create = function (fn, loader) {
 
 LazyView.mount = function (app, selector) {
   this.selector = selector
-  return Promise.all(this.queue).then(function () {
-    return app.mount(selector)
-  })
+  return app.mount(selector)
 }
 
 LazyView.prototype = Object.create(Component.prototype)
