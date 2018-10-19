@@ -29,8 +29,11 @@ LazyView.create = function (fn, loader) {
       var prefetch = state.prefetch || state._experimental_prefetch
       if (prefetch) {
         promise = promise.then(function (view) {
-          // account for view returning a promise to extend the prefetch queue
-          return cached.render(state, emit)
+          // account for view issuing more prefetches
+          var res = cached.render(state, emit)
+          // defer to nested prefetches issued by above render
+          var nested = prefetch.filter(function (p) { return p !== promise })
+          return Promise.all(nested).then(function () { return res })
         })
         prefetch.push(promise)
         return promise
