@@ -6,11 +6,6 @@
   "scripts": {
     "test": "standard && dependency-check ./package.json"
   },
-  "browserify": {
-    "transform": [
-      "unassertify"
-    ]
-  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/jallajs/choo-lazy-view.git"
@@ -19,7 +14,8 @@
     "choo",
     "split-require",
     "bankai",
-    "jalla"
+    "jalla",
+    "lazy"
   ],
   "author": "Carl Törnqvist <carl@tornqv.ist>",
   "license": "MIT",
@@ -30,9 +26,5 @@
   "devDependencies": {
     "dependency-check": "^3.1.0",
     "standard": "^11.0.1"
-  },
-  "dependencies": {
-    "nanocomponent": "^6.5.2",
-    "unassertify": "^2.1.1"
   }
 }

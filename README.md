@@ -6,132 +6,81 @@
 [![js-standard-style][standard-badge]][standard-link]
 
 Lazily load views as the router invokes them. Works great with dynamic import or
-[split-require][split-require] but should work with any software with a promise
-or callback interface.
+[split-require][split-require] but should work with any promise or callback API.
 
 ## Usage
 ```javascript
-var splitRequire = require('split-require')
-var LazyView = require('choo-lazy-view')
-var html = require('choo/html')
+var lazy = require('choo-lazy-view')
 var choo = require('choo')
 
 var app = choo()
 
-app.route('/', main)
+app.use(lazy)
+app.route('/my-page', lazy(() => import('./views/my-page')))
 
-// using dynamic import
-app.route('/some-page', LazyView.create(() => import('./a')))
-
-// or using split-require
-app.route('/another-page', LazyView.create((cb) => splitRequire('./b', cb)))
-
-module.exports = LazyView.mount(app, 'body')
-
-function main () {
-  return html`
-    <body class="Home">
-      <h1>home</h1>
-      <a href="/a">a</a><br>
-      <a href="/b">b</a>
-    </body>
-  `
-}
+module.exports = app.mount('body')
 ```
 
 ## API
-The module exposes a [Nanocomponent][nanocomponent] class with two static
-methods which are used for wrapping your views and `choo.mount`.
+### `app.use(lazy)`
+Hook up lazy view manager to the app. The lazy view store detects [jalla][jalla]
+and [bankai][bankai] prefetch (_experimental_prefetch) behaviour so that server
+side rendering works just as you'd expect.
 
-### `LazyView.create(callback, loader?)`
+### `lazy(callback, loader?)`
 Accepts a callback and an optional loader view. The callback will be invoked
-when the returned function is called upon by the router. The callback, in turn,
-should load the required view and relay it's response (or error) back to the
-caller. This can be done either with a `Promise` or with the supplied callback.
+when the view is called upon by the router. The callback, in turn, should load
+the required view and relay it's response (or error) back to the caller. This
+can be done either with a `Promise` or with a callback.
 
 ```javascript
 // using promise
-app.route('/my-page', LazyView.create(function () {
-  return fetchViewPromise()
-}))
+app.route('/my-page', lazy(() => import('./views/my-page')))
 
-// using the callback
-app.route('/another-page', LazyView.create(function (callback) {
-  fetchViewCallback(callback)
+// using a callback
+app.route('/another-page', lazy(function (callback) {
+  fetchView(function (err, view) {
+    callback(err, view)
+  })
 }))
 ```
 
 The second argument is optional and should be a function or a DOM node which
-will be displayed while loading. By default, the node used to mount the
-application in the DOM is used as loader (meaning the view remains unchanged
-while loading).
+will be displayed while loading. By default, the node used to mount the app in
+the DOM is used as loader (meaning the view remains unchanged while loading).
 
 ```javascript
-app.route('/a', LazyView.create(
+app.route('/a', lazy(
   () => import('./my-view'),
   (state, emit) => html`<body>Loading view…</body>`
 ))
 ```
 
-### `LazyView.mount(app, selector)`
-Wrapper function for `app.mount` which stores the selector internally to use as
-fallback loader while fetching views.
-
-```diff
-- module.exports = app.mount('body')
-+ module.exports = LazyView.mount(app, 'body')
-```
-
-### Extending LazyView
-You may extend on the LazyView component to add a shared framework wrapper, e.g.
-a header and footer.
-
-```javascript
-// components/view/index.js
-var html = require('choo/html')
-var LazyView = require('choo-lazy-view')
-var Header = require('../header')
-var Footer = require('../footer')
-
-module.exports = class View extends LazyView {
-  createElement (state, emit) {
-    return html`
-      <body>
-        ${state.cache(Header, 'header').render()}
-        ${super.createElement(state, emit)}
-        ${state.cache(Footer, 'footer').render()}
-      </body>
-    `
-  }
-}
-```
-
-```javascript
-// index.js
-var choo = require('choo')
-var View = require('./components/view')
-
-var app = choo()
-
-app.route('/', View.create(() => import('./views/home')))
-
-module.exports = View.mount(app, 'body')
-```
+During server side render, the store will expose the selector used by
+`app.mount` on the app state and use that as the fallback loader view. If you
+are not doing server side rendering and exposing the server side rendered state
+as `initialState` on the client, a loader view is required. *Note: jalla does
+this automatically for you.*
 
 ### Events
-Events are namespaced under `choo-lazy-view` and emitted when loading views.
+Events are namespaced under `lazy-view` and emitted when loading views.
 
-#### `choo-lazy-view:fetch`
-When fetching a view.
+#### `lazy-view:load(promise)`
+When fetching a view. The argument `promise` resolves to the loaded view.
 
-#### `choo-lazy-view:done`
-When the view has been fetched and is about to rerender.
+#### `lazy-view:success(view)`
+When the view has been fetched, before the app will rerender. The argument
+`view` is the resolved view.
 
-#### `choo-lazy-view:error`
+#### `lazy-view:error(err)`
 When the view fails to load.
 
+## License
+MIT
+
 [choo]: https://github.com/choojs/choo
-[nanocomponent]: https://github.com/choojs/nanocomponent
+[jalla]: https://github.com/jallajs/jalla
+[bankai]: https://github.com/choojs/bankai
 [split-require]: https://github.com/goto-bus-stop/split-require
 
 [stability-badge]: https://img.shields.io/badge/stability-experimental-orange.svg?style=flat-square

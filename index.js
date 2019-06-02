@@ -1,89 +1,64 @@
-var assert = require('assert')
-var Component = require('nanocomponent')
+module.exports = lazy
+module.exports.view = view
+module.exports.store = store
 
-module.exports = LazyView
-
-function LazyView (id, state, emitter, view) {
-  Component.call(this, id)
+function lazy () {
+  if (arguments.length === 3) return store.apply(undefined, arguments)
+  else return view.apply(undefined, arguments)
 }
 
-LazyView.create = function (fn, loader) {
-  assert(typeof fn === 'function', 'choo-lazy-view: fn should be a function')
-  fn = promisify(fn)
+function view (load, loader) {
+  var init = promisify(load)
 
-  var Self = this
-  var id = 'view-' + Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1)
+  return function proxy (state, emit) {
+    if (proxy.render) return proxy.render.call(this, state, emit)
 
-  return function (state, emit) {
-    var cached = state.cache(Self, id)
+    var p = init().then(function (render) {
+      // asynchronously render view to account for nested prefetches
+      if (typeof window === 'undefined') render(state, emit)
+      proxy.render = render
+      return render
+    })
 
-    if (!cached.view) {
-      emit('choo-lazy-view:fetch', id)
-      var promise = fn(function (err, view) {
-        if (err) return emit('choo-lazy-view:error', err)
-        emit('choo-lazy-view:done', id, view)
-        cached.view = view
-        emit('render')
-      })
-
-      var prefetch = state.prefetch || state._experimental_prefetch
-      if (prefetch) {
-        promise = promise.then(function (view) {
-          // account for view issuing more prefetches
-          var res = cached.render(state, emit)
-          // defer to nested prefetches issued by above render
-          var nested = prefetch.filter(function (p) { return p !== promise })
-          return Promise.all(nested).then(function () { return res })
-        })
-        prefetch.push(promise)
-        return promise
-      }
-    }
-
-    if (cached.view) return cached.render(state, emit)
+    emit('lazy:load', p)
     if (typeof loader === 'function') return loader(state, emit)
-    if (loader) return loader
 
-    assert(typeof window !== 'undefined', 'choo-lazy-view: loader is required when not using prefetch')
-    if (typeof Self.selector === 'string') return document.querySelector(Self.selector)
-    if (Self.selector instanceof window.Element) return Self.selector
-    assert.fail('choo-lazy-view: could not mount loader')
+    // assuming app has been provided initialState by server side render
+    var selector = state.selector
+    if (typeof window === 'undefined') {
+      // eslint-disable-next-line no-new-wrappers
+      var str = new String('<' + selector + '></' + selector + '>')
+      str.__encoded = true
+      return str
+    }
+    if (typeof selector === 'string') return document.querySelector(selector)
+    if (selector instanceof window.Element) return selector
+    throw new Error('choo-lazy-view: loader or server side generated initialState required')
   }
 }
 
-LazyView.mount = function (app, selector) {
-  this.selector = selector
-  return app.mount(selector)
-}
-
-LazyView.prototype = Object.create(Component.prototype)
-LazyView.prototype.constructor = LazyView
-
-LazyView.prototype.update = function () {
-  return true
-}
-
-LazyView.prototype.createElement = function (state, emit) {
-  assert(this.view, 'choo-lazy-view: cannot render without view')
-  return this.view(state, emit)
+function store (state, emitter, app) {
+  state.selector = state.selector || app.selector
+  emitter.on('lazy:load', function (p) {
+    var prefetch = state.prefetch || state._experimental_prefetch
+    if (prefetch) prefetch.push(p)
+    p.then(
+      emitter.emit.bind(emitter, 'lazy:success'),
+      emitter.emit.bind(emitter, 'lazy:error')
+    ).then(emitter.emit.bind(emitter, 'render'))
+  })
 }
 
 // wrap callback function with promise
 // fn -> fn
 function promisify (fn) {
-  return function (cb) {
+  return function () {
     return new Promise(function (resolve, reject) {
       var res = fn(function (err, value) {
         if (err) reject(err)
         else resolve(value)
       })
       if (res instanceof Promise) return res.then(resolve, reject)
-    }).then(done.bind(null, null), done)
-
-    function done (err, res) {
-      if (typeof cb === 'function') cb(err, res)
-      if (err) throw err
-      else return res
-    }
+    })
   }
 }
