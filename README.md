@@ -63,16 +63,16 @@ as `initialState` on the client, a loader view is required. *Note: jalla does
 this automatically for you.*
 
 ### Events
-Events are namespaced under `lazy-view` and emitted when loading views.
+Events are namespaced under `lazy` and emitted when loading views.
 
-#### `lazy-view:load(promise)`
+#### `lazy:load(promise)`
 When fetching a view. The argument `promise` resolves to the loaded view.
 
-#### `lazy-view:success(view)`
+#### `lazy:success(view)`
 When the view has been fetched, before the app will rerender. The argument
 `view` is the resolved view.
 
-#### `lazy-view:error(err)`
+#### `lazy:error(err)`
 When the view fails to load.
 
 ## License
