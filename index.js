@@ -9,18 +9,21 @@ function lazy () {
 
 function view (load, loader) {
   var init = promisify(load)
+  var promise
 
   return function proxy (state, emit) {
     if (proxy.render) return proxy.render.call(this, state, emit)
 
-    var p = init().then(function (render) {
-      // asynchronously render view to account for nested prefetches
-      if (typeof window === 'undefined') render(state, emit)
-      proxy.render = render
-      return render
-    })
+    if (!promise) {
+      promise = init().then(function (render) {
+        // asynchronously render view to account for nested prefetches
+        if (typeof window === 'undefined') render(state, emit)
+        proxy.render = render
+        return render
+      })
+      emit('lazy:load', promise)
+    }
 
-    emit('lazy:load', p)
     if (typeof loader === 'function') return loader(state, emit)
 
     // assuming app has been provided initialState by server side render
