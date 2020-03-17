@@ -30,7 +30,7 @@ function view (load, loader) {
     var selector = state.selector
     if (typeof window === 'undefined') {
       // eslint-disable-next-line no-new-wrappers
-      var str = new String('<' + selector + '></' + selector + '>')
+      var str = new String()
       str.__encoded = true
       return str
     }
