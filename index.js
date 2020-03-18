@@ -45,10 +45,11 @@ function store (state, emitter, app) {
   emitter.on('lazy:load', function (p) {
     var prefetch = state.prefetch || state._experimental_prefetch
     if (prefetch) prefetch.push(p)
-    p.then(
-      emitter.emit.bind(emitter, 'lazy:success'),
-      emitter.emit.bind(emitter, 'lazy:error')
-    ).then(emitter.emit.bind(emitter, 'render'))
+    p.then(function () {
+      emitter.emit('lazy:success')
+    }, function (err) {
+      emitter.emit('lazy:error', err)
+    }).then(emitter.emit.bind(emitter, 'render'))
   })
 }
 

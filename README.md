@@ -68,9 +68,8 @@ Events are namespaced under `lazy` and emitted when loading views.
 #### `lazy:load(promise)`
 When fetching a view. The argument `promise` resolves to the loaded view.
 
-#### `lazy:success(view)`
-When the view has been fetched, before the app will rerender. The argument
-`view` is the resolved view.
+#### `lazy:success()`
+When the view has been fetched, before the app will render.
 
 #### `lazy:error(err)`
 When the view fails to load.
